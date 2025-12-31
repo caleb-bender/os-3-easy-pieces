@@ -46,24 +46,27 @@ happens when they are writing to the file concurrently, i.e., at the
 same time?
 */
 
-//  
+// Both the parent and child process can access the file descriptor and both can write to the file.  
 
 int main(int argc, char* argv[]) {
-	int fd = open("README.md", O_RDONLY, S_IRUSR);
+	int fd = open("test.txt", O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR);
 	int rc = fork();
 	if (rc == 0) {
-		char buffer[21];
-		buffer[20] = '\0';
-		read(fd, buffer, 20);
-		printf("Data in buffer of child process (%d): %s\n", getpid(), buffer);
+		int i = 0;
+		while (i < 2) {
+			write(fd, "Hello from child!\n", 18);
+			++i;
+			usleep(1000u);
+		}
 		exit(0);
 	}
 	else if (rc > 0) {
-
-		char buffer[21];
-		buffer[20] = '\0';
-		read(fd, buffer, 20);
-		printf("Data in buffer of parent process (%d): %s\n", getpid(), buffer);
+		int i = 0;
+		while (i < 2) {
+			write(fd, "Hello from parent!\n", 19);
+			++i;
+			usleep(1000u);
+		}
 	}
 	close(fd);
 	return 0;
