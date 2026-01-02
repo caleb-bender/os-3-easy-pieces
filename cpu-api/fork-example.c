@@ -176,3 +176,38 @@ int main(int argc, char* argv[]) {
 }
 
 #endif
+
+#ifdef PROBLEM_FIVE
+
+/*
+5. Now write a program that uses wait() to wait for the child process
+to finish in the parent. What does wait() return? What happens if
+you use wait() in the child?
+*/
+
+// wait() returns the PID of a child process whose state has changed (e.g
+// . terminated, paused, resumed). In this simple example the child
+// simply terminates after print statements are executed. So, in the
+// parent, the child pid is returned after it exits. When calling wait in
+// the child, -1 is returned, as the child does not itself contain any
+// child processes. 
+
+int main(int argc, char* argv[]) {
+
+	int rc = fork();
+	if (rc == 0) {
+		printf("Child process with PID = %d executing...\n", getpid());
+		int grandchild_id = wait(NULL);
+		if (grandchild_id == -1)
+			printf("Child process with PID = %d does not have any child processes to wait for\n", getpid());
+		else
+			printf("Child process with PID = %d terminated grandchild with PID = %d\n", getpid(), grandchild_id);
+	}
+	else if (rc > 0) {
+		int child_pid = wait(NULL);
+		printf("Child process with PID = %d terminated from parent...\n", child_pid);
+	}
+	return 0;
+}
+
+#endif
