@@ -185,8 +185,7 @@ to finish in the parent. What does wait() return? What happens if
 you use wait() in the child?
 */
 
-// wait() returns the PID of a child process whose state has changed (e.g
-// . terminated, paused, resumed). In this simple example the child
+// wait() returns the PID of a child process that has terminated. In this simple example the child
 // simply terminates after print statements are executed. So, in the
 // parent, the child pid is returned after it exits. When calling wait in
 // the child, -1 is returned, as the child does not itself contain any
@@ -207,6 +206,104 @@ int main(int argc, char* argv[]) {
 		int child_pid = wait(NULL);
 		printf("Child process with PID = %d terminated from parent...\n", child_pid);
 	}
+	return 0;
+}
+
+#endif
+
+#ifdef PROBLEM_SIX
+
+/* 6. Write a slight modification of the previous program, this time using waitpid()
+instead of wait(). When would waitpid() be useful?*/
+
+// The function waitpid is useful when you want to wait for a specific
+// child process using its pid rather than just the first process that
+// happens to terminate. Additionally, waitpid provides an options parameter that, for example, could be configured in a update loop to not block when it is called using WNOHANG. Essentially, it provides a lot more fine-grained control for waiting on child process state changes.
+
+
+int main(int argc, char* argv[]) {
+
+	int rc = fork();
+	if (rc == 0) {
+		printf(
+		"Do some work in child process with PID = %d...\n",
+		getpid());	
+	}
+	else if (rc > 0) {
+		int child_id = waitpid(rc, NULL, 0);
+		printf("Child process with PID = %d has terminated\n",
+		child_id);
+	}
+	return 0;
+}
+
+#endif
+
+#ifdef PROBLEM_SEVEN
+
+/* 7. Write a program that creates a child process, and then in the child
+closes standard output (STDOUT FILENO). What happens if the child
+calls printf() to print some output after closing the descriptor?*/
+
+// Nothing prints out because STDOUT was closed in the child process.
+// However, the parent is still able to print since the file descriptor
+// for STDOUT is scoped per process. 
+
+int main(int argc, char* argv[]) {
+
+	int rc = fork();
+	if (rc == 0) {
+		close(STDOUT_FILENO);
+		printf(
+		"Do some work in child process with PID = %d...\n",
+		getpid());	
+	}
+	else if (rc > 0) {
+		int child_id = waitpid(rc, NULL, 0);
+		printf("Child process with PID = %d has terminated\n",
+		child_id);
+	}
+	return 0;
+}
+
+#endif
+
+#ifdef PROBLEM_EIGHT
+
+/* 8. Write a program that creates two children, and connects the standard output of one to the standard input of the other, using the pipe()
+system call.*/
+
+
+int main(int argc, char* argv[]) {
+
+	int pipe_fds[2];
+	if (pipe(pipe_fds) == -1) {
+		perror("pipe");
+		return -1;
+	}
+
+	int ls_child = fork();
+	if (ls_child == 0) {
+		dup2(pipe_fds[1], STDOUT_FILENO);
+		close(pipe_fds[0]);
+		close(pipe_fds[1]);
+		execlp("/bin/ls", "ls", "-alt", NULL);
+		perror("Failed to execute ls command");
+		return -1;	
+	}
+	int grep_child = fork();
+	if (grep_child == 0) {
+		dup2(pipe_fds[0], STDIN_FILENO);
+		close(pipe_fds[0]);
+		close(pipe_fds[1]);
+		execl("/bin/grep", "grep", "fork-example", NULL);
+		perror("Failed to execute grep command");
+		return -1;	
+	}
+	close(pipe_fds[0]);
+	close(pipe_fds[1]);
+	waitpid(ls_child, NULL, 0);
+	waitpid(grep_child, NULL, 0);
 	return 0;
 }
 
